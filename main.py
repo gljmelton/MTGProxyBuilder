@@ -1,0 +1,40 @@
+import scryfall
+from scryfall.scryfall import Scryfall
+from app_interface import BuilderApp
+from layout_generator import LayoutGenerator
+from scryfall.card import Card
+
+# Press Ctrl+F5 to execute it or replace it with your code.
+# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+
+class ProxyBuilder:
+    def __init__(self):
+        self.app = BuilderApp()
+        self.app.search_callback = self.search_card
+        self.app.generate_callback = self.generate_layout
+        self.scryfall_data = Scryfall("oracle-cards.jsonl")
+        self.search_result : Card | None = None
+
+        self.layout_generator = LayoutGenerator()
+
+    def run(self):
+        self.app.run()
+
+    def search_card(self, search_term):
+        result = self.scryfall_data.search_by_name(search_term)
+
+        if result is None:
+            print(f"No result found!")
+            return
+
+        print(f"[ProxyBuilder][search_card] Search results: {result.name}")
+        self.search_result = result
+        self.app.update_search_result(self.scryfall_data.get_card_image(result))
+
+    def generate_layout(self, custom_data):
+        self.layout_generator.generate(custom_data, self.search_result)
+
+# Press the green button in the gutter to run the script.
+if __name__ == '__main__':
+    app = ProxyBuilder()
+    app.run()
