@@ -9,30 +9,39 @@ from scryfall.card import Card
 
 class ProxyBuilder:
     def __init__(self):
-        self.app = BuilderApp()
+
+        self.layout_generator = LayoutGenerator()
+        self.app = BuilderApp(self.layout_generator.get_fonts())
         self.app.search_callback = self.search_card
         self.app.generate_callback = self.generate_layout
         self.scryfall_data = Scryfall("oracle-cards.jsonl")
         self.search_result : Card | None = None
 
-        self.layout_generator = LayoutGenerator()
-
     def run(self):
         self.app.run()
 
     def search_card(self, search_term):
+        self.app.push_status("Searching...", "white")
         result = self.scryfall_data.search_by_name(search_term)
 
         if result is None:
+            self.app.push_status("No card found!", "red")
             print(f"No result found!")
             return
 
         print(f"[ProxyBuilder][search_card] Search results: {result.name}")
         self.search_result = result
         self.app.update_search_result(self.scryfall_data.get_card_image(result))
+        self.app.push_status("Card found!", "green")
 
     def generate_layout(self, custom_data):
-        self.layout_generator.generate(custom_data, self.search_result)
+        self.app.push_status("Generating...", "white")
+        result = self.layout_generator.generate(custom_data, self.search_result)
+        if not result:
+            self.app.push_status("Unable to generate!", "red")
+
+        else:
+            self.app.push_status("Generator success!", "green")
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

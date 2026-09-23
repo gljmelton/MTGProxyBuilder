@@ -1,8 +1,11 @@
 import tkinter
 from tkinter import ttk
+from tkinter.ttk import Combobox
+
 from PIL import Image, ImageTk
 from io import BytesIO
 import sv_ttk
+from fontTools.merge import options
 
 IMAGE_SCALE = 0.4
 
@@ -23,7 +26,10 @@ class BuilderApp:
             self.generate_callback({
                 "nickname": self.custom_name_entry.get(),
                 "power": self.power_entry.get(),
-                "toughness": self.toughness_entry.get()
+                "toughness": self.toughness_entry.get(),
+                "style1": self.style1.get(),
+                "style2": self.style2.get(),
+                "style3": self.style3.get()
             })
 
     def update_search_result(self, value):
@@ -39,7 +45,16 @@ class BuilderApp:
         self.card_image.image = img
         self.card_image.grid(column=0, row=0, padx=5, pady=5)
 
-    def __init__(self):
+    def __init__(self, styles):
+        self.styles = styles
+        self.style1 : Combobox | None = None
+        self.style2 : Combobox | None = None
+        self.style3 : Combobox | None = None
+        self.style1_preview : tkinter.Label | None = None
+        self.style2_preview : tkinter.Label | None = None
+        self.style3_preview : tkinter.Label | None = None
+        self.style_frame = None
+
         self.root = tkinter.Tk()
 
         self.root.title("Proxy Collage Printer")
@@ -69,34 +84,63 @@ class BuilderApp:
         #
         ##
 
-        ##Actions Frame
-        self.actions_frame = ttk.LabelFrame(self.root, text="Actions")
-        self.actions_frame.grid(column=1, row=0, padx=10, pady=10, sticky=tkinter.NSEW)
+        ##Right fram
+        self.right_frame = ttk.Frame(self.root)
+        self.right_frame.grid(column=1, row=0, padx=5, pady=5, sticky=tkinter.NSEW)
+        #Actions Frame
+        self.actions_frame = ttk.LabelFrame(self.right_frame, text="Actions")
+        self.actions_frame.grid(column=0, row=0, padx=5, pady=5, sticky=tkinter.NSEW)
 
-        # Custom Name
-        self.alias_frame = ttk.LabelFrame(self.actions_frame, text="Custom Data")
-        self.alias_frame.grid(column=0, row=0, padx=5, pady=5)
+        self.generate_button = ttk.Button(self.actions_frame, text="Generate")
+        self.generate_button.grid(column=0, row=0, padx=5, pady=5, sticky=tkinter.EW)
+        self.generate_button.bind("<Button-1>", self.generate)
+        #
 
-        self.nickname_frame = ttk.LabelFrame(self.alias_frame, text="Nickname")
+        # Custom Data
+        self.data_frame = ttk.LabelFrame(self.right_frame, text="Custom Data")
+        self.data_frame.grid(column=0, row=1, padx=5, pady=5, sticky=tkinter.NSEW)
+
+        self.nickname_frame = ttk.LabelFrame(self.data_frame, text="Nickname")
         self.nickname_frame.grid(column=0, row=0, padx=5, pady=5, sticky=tkinter.NSEW)
 
         self.custom_name_entry = ttk.Entry(self.nickname_frame)
         self.custom_name_entry.grid(column=1, row=0, padx=5, pady=5, sticky=tkinter.NSEW)
 
-        self.pt_group = ttk.LabelFrame(self.alias_frame, text="Power/Toughness", padding=5)
+        self.pt_group = ttk.LabelFrame(self.data_frame, text="Power/Toughness", padding=5)
         self.pt_group.grid(column=0, row=1, padx=5, pady=5, sticky=tkinter.NSEW)
 
         self.power_entry = ttk.Entry(self.pt_group, width=5)
-        self.power_entry.grid(column=0, row=0, padx=2, pady=2)
+        self.power_entry.grid(column=0, row=0, padx=2, pady=2, sticky=tkinter.EW)
         ttk.Label(self.pt_group, text="/").grid(column=1, row=0, padx=5, pady=5)
         self.toughness_entry = ttk.Entry(self.pt_group, width=5)
-        self.toughness_entry.grid(column=2, row=0, padx=2, pady=2)
-        #
+        self.toughness_entry.grid(column=2, row=0, padx=2, pady=2, sticky=tkinter.EW)
 
-        self.generate_button = ttk.Button(self.actions_frame, text="Generate")
-        self.generate_button.grid(column=0, row=1, padx=5, pady=5, sticky=tkinter.EW)
-        self.generate_button.bind("<Button-1>", self.generate)
+        self.add_style_dropdowns(self.data_frame, 2)
+        #
         ##
+
+        self.status = ttk.Label(self.root, text="Status: Ready", foreground="white")
+        self.status.grid(column=0, row=1, padx=5, pady=5, sticky=tkinter.EW)
+
+    def add_style_dropdowns(self, parent, row):
+        self.style_frame = ttk.LabelFrame(parent, text="Styles")
+        self.style_frame.grid(column=0, row= row, padx=5, pady=5, sticky=tkinter.NSEW)
+
+        self.style1 = self.add_style_dropdown(0, 0, self.style_frame)
+        self.style2 = self.add_style_dropdown(1, 1, self.style_frame)
+        self.style3 = self.add_style_dropdown(2, 2, self.style_frame)
+
+    def add_style_dropdown(self, start_index, row, parent):
+        style = ttk.Combobox(parent, values=[style.name for style in self.styles])
+        style["state"] = "readonly"
+        style.current(start_index)
+        style.grid(column=0, row=row, padx=5, pady=5, sticky=tkinter.EW)
+        return style
+
+    def push_status(self, label, color = "white"):
+        self.status["text"] = f"Status: {label}"
+        self.status["foreground"] = color
+        self.status.update()
 
     def run(self):
         sv_ttk.set_theme("dark")

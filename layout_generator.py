@@ -1,9 +1,9 @@
 import os
-
-from scryfall.card import Card
-from pictex import Canvas, Row, Column, Text, Image
+import re
 import textwrap
-from PIL import Image as PILImage
+from enum import Enum
+from scryfall.card import Card
+from pictex import Canvas, Row, Column, Text
 
 WIDTH = 8.5
 HEIGHT = 11.0
@@ -13,90 +13,108 @@ POINT_SIZE = (DPI / 72.0)
 PIXEL_WIDTH = int(WIDTH * DPI)
 PIXEL_HEIGHT = int(HEIGHT * DPI)
 
-DEFAULT_WEIGHT = 9
-MICRO_WEIGHT = int(7.5)
+BIG_SIZES = [12, 9, 7]
+REGULAR_SIZES = [9, 7]
+SMALL_SIZES = [7, 5]
 
-class Style:
-    def __init__(self,
-            default_font: str,
-            bold_font: str,
-            italic_font: str,
-            title_weight: int = DEFAULT_WEIGHT,
-            normal_weight: int = DEFAULT_WEIGHT,
-            small_weight: int = MICRO_WEIGHT):
-        self.default_font = default_font
+class FontWeight(Enum):
+    Bold = 1
+    Italic = 2
+    Regular = 3
 
-        if bold_font:
-            self.bold_font = bold_font
+class FontSet:
+    def __init__(self, name, regular, bold = None, italic = None, size_multiplier : int = 1):
+        self.name = name
+        self.regular = regular
+        if bold:
+            self.bold = bold
         else:
-            self.bold_font = self.default_font
+            self.bold = regular
 
-        if italic_font:
-            self.italic_font = italic_font
+        if italic:
+            self.italic = italic
         else:
-            self.italic_font = self.default_font
-
-        self.title_weight = title_weight * POINT_SIZE
-        self.normal_weight = normal_weight * POINT_SIZE
-        self.small_weight = small_weight * POINT_SIZE
+            self.italic = regular
 
 class LayoutGenerator:
-
     def __init__(self):
         self.custom_data = {}
         self.card = None
 
-    def generate(self, custom_data: dict, card: Card | None):
+        self.fonts = [
+            FontSet("SansSerif", "Helvetica.ttf",),
+            FontSet("Blackletter", "PirataOne-Regular.ttf"),
+            FontSet("Monospace", "FiraCode-Regular.ttf"),
+            FontSet("Typewriter", "Mom_typewrite.ttf"),
+            FontSet("MTG", "Beleren2016-Bold.ttf")
+        ]
+
+    def get_fonts(self):
+        return self.fonts
+
+    def generate(self, custom_data: dict, card: Card | None) -> bool:
         if card is None:
             print("[LayoutGenerator][generate] Attempting to generate card with no card!")
-            return
+            return False
 
         print("[LayoutGenerator][generate] Generating layout...")
         self.custom_data = custom_data
         self.card = card
 
-        self.generate_card()
+        return self.generate_card()
 
-    def generate_card(self):
+    def generate_preview(self, custom_data: dict, card: Card | None) -> bool:
+        if card is None:
+            print("[LayoutGenerator][generate] Attempting to generate card with no card!")
+            return False
+
+
+
+    def generate_card(self) -> bool:
         print("[LayoutGenerator][generate_card] Generating card...")
-        nickname = ""
-        if self.custom_data["nickname"]:
-            nickname = Text(self.custom_data["nickname"])
-            self.format_text(nickname)
-
-        name = Text(self.card.name)
-        self.format_text(name)
-
-        c_type = Text(self.card.type_line)
-        self.format_text(c_type)
-
-        oracle = Text(self.wrap_text(36, self.card.oracle_text))
-        self.format_text(oracle)
-
-        pt = ""
-        if self.card.power and self.card.toughness:
-            pt = Text(f"{self.get_power()}/{self.get_toughness()}")
-            self.format_text(pt)
+        fonts = [
+            self.get_font_for_name(self.custom_data["style1"]),
+            self.get_font_for_name(self.custom_data["style2"]),
+            self.get_font_for_name(self.custom_data["style3"]),
+        ]
 
         #Col Main Page
+        col = []
+        #Name
+        if self.custom_data["nickname"] == "":
+            col.append(self.generate_data_row(self.card.name, fonts, BIG_SIZES, FontWeight.Bold))
+        else:
+            col.append(self.generate_data_row(self.custom_data["nickname"], fonts, BIG_SIZES, FontWeight.Bold))
+            col.append(self.generate_data_row(self.card.name, fonts, SMALL_SIZES, FontWeight.Italic))
+
+        #Type
+        col.append(self.generate_data_row(self.card.type_line, fonts, REGULAR_SIZES, FontWeight.Regular))
+
+        #Oracle
+        col.append(self.generate_data_row(
+            self.wrap_text(34, self.remove_parenthenticals(self.card.oracle_text)), #Wrap text and remove any reminder text
+            fonts, REGULAR_SIZES, FontWeight.Regular))
+
+        row = []
+        #Mana Value
+        row.append(self.generate_data_row(self.format_mana(self.card.mana_cost), fonts, REGULAR_SIZES,
+                                       FontWeight.Regular))
+        #Power/Toughness
+        if self.card.power and self.card.toughness:
+            power = self.card.power
+            if not self.custom_data["power"] == "":
+                power = self.custom_data["power"]
+
+            toughness = self.card.toughness
+            if not self.custom_data["toughness"] == "":
+                toughness = self.custom_data["toughness"]
+
+            row.append(self.generate_data_row(f"{power}/{toughness}", fonts, REGULAR_SIZES, FontWeight.Regular))
+
+
         col = Column(
-            #Row 1 - Names
-            Row(
-                name,
-            nickname,
-            ),
-            #Row 2 - Type line
-            Row(
-                c_type
-            ),
-            #Row 3 - Oracle text
-            Row(
-                oracle
-            ),
-            #Row 4 - P/T and other info
-            Row(
-                pt
-            )
+            *col,
+            Row(*row)
         )
         col.padding(0.25 * DPI)
 
@@ -105,9 +123,70 @@ class LayoutGenerator:
         canvas.background_color("white")
         img = canvas.render(col).to_pillow()
 
-        pdf_path = f"{self.card.name}.pdf"
-        img.save(pdf_path, "PDF",resolution=100.0, save_all=True)
-        os.startfile(pdf_path)
+        pdf_path = rf"output\{self.card.name}.pdf"
+
+        try:
+            img.save(pdf_path, "PDF",resolution=100.0, save_all=True)
+            os.startfile(rf"{pdf_path}")
+            return True
+        except PermissionError:
+            print(f"[LayoutGenerator][generate_card] Permission error!")
+            return False
+
+    def generate_data_row(self, text, fonts, sizes, weight):
+        row = []
+        print(f"Generating row data for {text}")
+        for font in fonts:
+            print(f"At font {font.name}")
+            row.append(self.generate_data_column(text, font, sizes, weight))
+
+        return Row(*row)
+
+    def generate_data_column(self, text, font, sizes, weight):
+        column = []
+        print (f"Generating column data for font {font.name}")
+        for size in sizes:
+            print(f"At size {size}")
+            column.append(self.generate_data_set(text, font, size, weight))
+
+        return Column(*column)
+
+    def generate_data_set(self, text, font : FontSet, size, weight : FontWeight):
+        print(f"Generating data for font {font.name}")
+        font = self.get_weight_for_font(font, weight)
+        regular = Text(text)
+        self.style_text(regular, font, size)
+
+        invert = Text(text)
+        self.style_text(invert, font, size, True)
+
+        return Column(regular, invert)
+
+    def get_weight_for_font(self, font : FontSet, weight):
+        if weight == FontWeight.Bold:
+            return font.bold
+        if weight == FontWeight.Italic:
+            return font.italic
+
+        return font.regular
+
+    def style_text(self, text: Text, font, size, invert=False):
+        text.font_family(rf"fonts\{font}").font_size(size*POINT_SIZE).color("black").margin(0.05*DPI)
+        if invert:
+            text.background_color("black")
+            text.padding(0.05 * DPI)
+            text.color("white")
+
+        else:
+            text.background_color("white")
+            text.color("black")
+
+    def get_font_for_name(self, name):
+        for font in self.fonts:
+            if font.name == name:
+                return font
+
+        return None
 
     def get_power(self):
         if self.custom_data["power"]:
@@ -126,10 +205,8 @@ class LayoutGenerator:
                  break_long_words=False, replace_whitespace=False))
                  for line in text.splitlines() if line.strip() != ''])
 
-    @staticmethod
-    def format_text(text: Text):
-        text.font_size(DEFAULT_WEIGHT * POINT_SIZE)
-        text.font_family("fonts/CloisterBlack.ttf")
-        text.color("black")
-        text.margin(15)
-        text.line_height(1.2)
+    def format_mana(self, text: str):
+        return text.replace("{", "").replace("}", "")
+
+    def remove_parenthenticals(self, text: str):
+        return re.sub("[\\(\\[].*?[\\)\\]]", "", text)
