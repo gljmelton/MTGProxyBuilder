@@ -14,6 +14,7 @@ class ProxyBuilder:
         self.app = BuilderApp(self.layout_generator.get_fonts())
         self.app.search_callback = self.search_card
         self.app.generate_callback = self.generate_layout
+        self.app.font_preview_callback = self.generate_font_preview
         self.scryfall_data = Scryfall("oracle-cards.jsonl")
         self.search_result : Card | None = None
 
@@ -42,6 +43,16 @@ class ProxyBuilder:
 
         else:
             self.app.push_status("Generator success!", "green")
+
+    def generate_font_preview(self):
+        self.app.push_status("Generating font preview...", "white")
+        result_img = self.layout_generator.generate_preview()
+        if not result_img:
+            self.app.push_status("Unable to generate!", "red")
+
+        else:
+            self.app.push_status("Generator success!", "green")
+            self.app.update_font_preview()
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

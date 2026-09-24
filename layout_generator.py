@@ -16,6 +16,12 @@ PIXEL_HEIGHT = int(HEIGHT * DPI)
 BIG_SIZES = [12, 9, 7]
 REGULAR_SIZES = [9, 7]
 SMALL_SIZES = [7, 5]
+ONLY_SMALL = [7]
+
+class Casing(Enum):
+    DEFAULT = "Default"
+    LOWER = "lower"
+    UPPER = "UPPER"
 
 class FontWeight(Enum):
     Bold = 1
@@ -42,8 +48,11 @@ class LayoutGenerator:
         self.card = None
 
         self.fonts = [
-            FontSet("SansSerif", "Helvetica.ttf",),
+            FontSet("SansSerif", "BeVietnamPro-Regular.ttf"),
+            FontSet("Serif", "Alegreya-Regular.ttf"),
             FontSet("Blackletter", "PirataOne-Regular.ttf"),
+            FontSet("Overprint", "Overprint TM.ttf"),
+            FontSet("Block", "Staatliches-Regular.ttf"),
             FontSet("Monospace", "FiraCode-Regular.ttf"),
             FontSet("Typewriter", "Mom_typewrite.ttf"),
             FontSet("MTG", "Beleren2016-Bold.ttf")
@@ -63,11 +72,21 @@ class LayoutGenerator:
 
         return self.generate_card()
 
-    def generate_preview(self, custom_data: dict, card: Card | None) -> bool:
-        if card is None:
-            print("[LayoutGenerator][generate] Attempting to generate card with no card!")
-            return False
+    def generate_preview(self) -> bool:
+        col = []
 
+        for font in self.fonts:
+            col.append(Text(font.name).font_family(rf"fonts\{font.regular}").font_size(64))
+
+        col = Column(*col)
+
+        canvas = Canvas()
+        canvas.size(600, 800)
+        canvas.background_color("white")
+        img = canvas.render(col).to_pillow()
+        img.save("font_preview.png", "PNG", resolution=100.0)
+
+        return True
 
 
     def generate_card(self) -> bool:
@@ -82,22 +101,28 @@ class LayoutGenerator:
         col = []
         #Name
         if self.custom_data["nickname"] == "":
-            col.append(self.generate_data_row(self.card.name, fonts, BIG_SIZES, FontWeight.Bold))
+            col.append(self.generate_data_row(self.format_name(self.card.name), fonts, BIG_SIZES, FontWeight.Bold))
         else:
-            col.append(self.generate_data_row(self.custom_data["nickname"], fonts, BIG_SIZES, FontWeight.Bold))
-            col.append(self.generate_data_row(self.card.name, fonts, SMALL_SIZES, FontWeight.Italic))
+            col.append(self.generate_data_row(self.format_name(self.custom_data["nickname"]), fonts, BIG_SIZES, FontWeight.Bold))
+            col.append(self.generate_data_row(self.format_name(self.card.name), fonts, SMALL_SIZES, FontWeight.Italic))
 
         #Type
-        col.append(self.generate_data_row(self.card.type_line, fonts, REGULAR_SIZES, FontWeight.Regular))
+        col.append(self.generate_data_row(self.format_type_line(self.card.type_line), fonts, REGULAR_SIZES, FontWeight.Regular))
 
         #Oracle
-        col.append(self.generate_data_row(
-            self.wrap_text(34, self.remove_parenthenticals(self.card.oracle_text)), #Wrap text and remove any reminder text
-            fonts, REGULAR_SIZES, FontWeight.Regular))
+        if self.card.type_line == "Dungeon":
+            col.append(self.generate_data_row(
+                self.format_oracle(self.card.oracle_text),  # Wrap text and remove any reminder text
+                fonts, ONLY_SMALL, FontWeight.Regular))
+        else:
+            col.append(self.generate_data_row(
+                self.format_oracle(self.card.oracle_text), #Wrap text and remove any reminder text
+                fonts, REGULAR_SIZES, FontWeight.Regular))
 
         row = []
         #Mana Value
-        row.append(self.generate_data_row(self.format_mana(self.card.mana_cost), fonts, REGULAR_SIZES,
+        if self.card.mana_cost:
+            row.append(self.generate_data_row(self.format_mana(self.card.mana_cost), fonts, REGULAR_SIZES,
                                        FontWeight.Regular))
         #Power/Toughness
         if self.card.power and self.card.toughness:
@@ -201,12 +226,27 @@ class LayoutGenerator:
         return self.card.toughness
 
     def wrap_text(self, width: int, text: str):
-        return '\n'.join(['\n'.join(textwrap.wrap(line, width,
+        return '\n\n'.join(['\n'.join(textwrap.wrap(line, width,
                  break_long_words=False, replace_whitespace=False))
                  for line in text.splitlines() if line.strip() != ''])
 
+    def format_name(self, text: str):
+        return text
+
+    def format_type_line(self, text: str):
+        return text
+
     def format_mana(self, text: str):
         return text.replace("{", "").replace("}", "")
+
+    def format_oracle(self, text: str):
+        text = self.remove_parenthenticals(text)
+        text = text.replace("{", "").replace("}", "")
+        text = self.wrap_text(34, text)
+        if self.card.type_line == "Dungeon":
+            print("Formatting dungeon")
+            text = text.replace(" \u2014 ", "\n")
+        return text
 
     def remove_parenthenticals(self, text: str):
         return re.sub("[\\(\\[].*?[\\)\\]]", "", text)
