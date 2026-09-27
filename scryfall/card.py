@@ -89,6 +89,7 @@ class CardFace(msgspec.Struct):
     keywords: list | None = None
     power: str | None = None
     toughness: str | None = None
+    loyalty: str | None = None
 
 class Card(msgspec.Struct):
     id: str
@@ -108,6 +109,7 @@ class Card(msgspec.Struct):
     image_uris: ImageUri | None = None
     power: str | None = None
     toughness: str | None = None
+    loyalty: str | None = None
     prices: Prices | None = None
     card_faces: list[CardFace] = None
 

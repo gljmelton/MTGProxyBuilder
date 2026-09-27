@@ -108,3 +108,10 @@ class Scryfall:
             return card.card_faces[face.value].toughness
         else :
             return card.toughness
+
+    @staticmethod
+    def get_loyalty(card: Card, face: Faces = Faces.Front):
+        if card.card_faces:
+            return card.card_faces[face.value].loyalty
+        else :
+            return card.loyalty

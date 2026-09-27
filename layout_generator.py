@@ -6,12 +6,13 @@ from enum import Enum
 from pathlib import Path
 
 from PIL.Image import Image, Resampling
+from pictex.builders import column
 
 from scryfall import scryfall
 from scryfall.card import Card
 from pictex import Canvas, Row, Column, Text
 
-from scryfall.scryfall import Scryfall, Faces
+from scryfall.scryfall import Scryfall, Faces, Layout
 
 WIDTH = 8.5
 HEIGHT = 11.0
@@ -21,11 +22,20 @@ POINT_SIZE = (DPI / 72.0)
 PIXEL_WIDTH = int(WIDTH * DPI)
 PIXEL_HEIGHT = int(HEIGHT * DPI)
 
-BIG_SIZES = [18, 14, 12]
+BIG_SIZES = [16, 14, 12]
 REGULAR_SIZES = [12, 9]
 SMALL_SIZES = [9, 7]
 ONLY_SMALL = [9]
 ONLY_TINY = [7]
+
+LONG_TEXT = 200
+
+NARROW_LAYOUTS = [
+    Layout.CLASS,
+    Layout.ADVENTURE,
+    Layout.PREPARE,
+    Layout.SAGA,
+]
 
 class Casing(Enum):
     DEFAULT = "Default"
@@ -85,69 +95,95 @@ class LayoutGenerator:
         col = []
 
         for font in self.fonts:
-            col.append(Text(font.name).font_family(rf"fonts\{font.regular}").font_size(64))
+            col.append(Row(
+                Text(font.name).font_family(rf"fonts\{font.regular}").background_color("white").font_size(64).padding(15),
+                Text(font.name).font_family(rf"fonts\{font.regular}").font_size(64).background_color("black").color("white").padding(15)
+            ))
 
         col = Column(*col)
 
         canvas = Canvas()
-        canvas.size(600, 800)
+        canvas.size(920, 115*len(self.fonts))
         canvas.background_color("white")
         img = canvas.render(col).to_pillow()
         img.save("font_preview.png", "PNG", resolution=100.0)
 
         return True
 
-
-    def generate_card(self) -> bool:
-        print("[LayoutGenerator][generate_card] Generating card...")
+    def generate_card_page(self, face: Faces = Faces.Front) -> str:
         fonts = [
             self.get_font_for_name(self.custom_data["style1"]),
             self.get_font_for_name(self.custom_data["style2"]),
             self.get_font_for_name(self.custom_data["style3"]),
         ]
 
-        #Col Main Page
+        # Col Main Page
         col = []
-        #Name
+        # Name
         if self.custom_data["nickname"] == "":
-            col.append(self.generate_data_row(self.format_name(Scryfall.get_card_name(self.card)), fonts, BIG_SIZES, FontWeight.Bold))
+            print("[LayoutGenerator][generate_card] Adding name")
+            col.append(self.generate_data_row(self.format_name(Scryfall.get_card_name(self.card, face)), fonts, BIG_SIZES,
+                                              FontWeight.Bold))
         else:
-            col.append(self.generate_data_row(self.format_name(self.custom_data["nickname"]), fonts, BIG_SIZES, FontWeight.Bold))
-            col.append(self.generate_data_row(self.format_name(Scryfall.get_card_name(self.card)), fonts, SMALL_SIZES, FontWeight.Italic))
+            print("[LayoutGenerator][generate_card] Adding name with nickname")
+            col.append(self.generate_data_row(self.format_name(self.custom_data["nickname"]), fonts, BIG_SIZES,
+                                              FontWeight.Bold))
+            col.append(self.generate_data_row(self.format_name(Scryfall.get_card_name(self.card, face)), fonts, SMALL_SIZES,
+                                              FontWeight.Italic))
 
-        #Type
-        col.append(self.generate_data_row(self.format_type_line(Scryfall.get_type_line(self.card)), fonts, REGULAR_SIZES, FontWeight.Regular))
+        # Type
+        print("[LayoutGenerator][generate_card] Adding type")
+        col.append(
+            self.generate_data_row(self.format_type_line(Scryfall.get_type_line(self.card, face)), fonts, REGULAR_SIZES,
+                                   FontWeight.Regular))
 
-        #Oracle
+        # Oracle
+        print("[LayoutGenerator][generate_card] Adding oracle")
         oracle_sizes = REGULAR_SIZES
-        if len(Scryfall.get_card_oracle(self.card)) > 250:
+        if len(Scryfall.get_card_oracle(self.card, face)) > LONG_TEXT:
             oracle_sizes = ONLY_TINY
         if self.card.type_line == "Dungeon":
             col.append(self.generate_data_row(
-                self.format_oracle(Scryfall.get_card_oracle(self.card, Faces.Front)),  # Wrap text and remove any reminder text
-                fonts, ONLY_SMALL, FontWeight.Regular))
+                self.format_oracle(Scryfall.get_card_oracle(self.card, face)),
+                # Wrap text and remove any reminder text
+                fonts, ONLY_SMALL, FontWeight.Regular, True))
+        if self.card.layout in NARROW_LAYOUTS:
+            col.append(self.generate_data_row(
+                self.format_oracle(Scryfall.get_card_oracle(self.card, face)),
+                # Wrap text and remove any reminder text
+                fonts, oracle_sizes, FontWeight.Regular, True))
         else:
             col.append(self.generate_data_row(
-                self.format_oracle(Scryfall.get_card_oracle(self.card, Faces.Front)), #Wrap text and remove any reminder text
+                self.format_oracle(Scryfall.get_card_oracle(self.card, face)),
+                # Wrap text and remove any reminder text
                 fonts, oracle_sizes, FontWeight.Regular))
 
         row = []
-        #Mana Value
-        if Scryfall.get_mana_value(self.card):
-            row.append(self.generate_data_row(self.format_mana(Scryfall.get_mana_value(self.card)), fonts, REGULAR_SIZES,
+
+        # Mana Value
+        if Scryfall.get_mana_value(self.card, face):
+            print("[LayoutGenerator][generate_card] Adding mana value")
+            row.append(
+                self.generate_data_row(self.format_mana(Scryfall.get_mana_value(self.card, face)), fonts, REGULAR_SIZES,
                                        FontWeight.Regular))
-        #Power/Toughness
-        if Scryfall.get_power(self.card, Faces.Front) and Scryfall.get_toughness(self.card, Faces.Front):
-            power = Scryfall.get_power(self.card, Faces.Front)
+
+        # Power/Toughness
+        if Scryfall.get_power(self.card, face) and Scryfall.get_toughness(self.card, face):
+            print("[LayoutGenerator][generate_card] Adding P/T")
+            power = Scryfall.get_power(self.card, face)
             if not self.custom_data["power"] == "":
                 power = self.custom_data["power"]
 
-            toughness = Scryfall.get_toughness(self.card, Faces.Front)
+            toughness = Scryfall.get_toughness(self.card, face)
             if not self.custom_data["toughness"] == "":
                 toughness = self.custom_data["toughness"]
 
             row.append(self.generate_data_row(f"{power}/{toughness}", fonts, REGULAR_SIZES, FontWeight.Regular))
 
+        #Loyalty
+        if Scryfall.get_loyalty(self.card, face):
+            print("[LayoutGenerator][generate_card] Adding loyalty")
+            row.append(self.generate_data_row(Scryfall.get_loyalty(self.card, face), fonts, REGULAR_SIZES, FontWeight.Regular))
 
         col = Column(
             *col,
@@ -159,40 +195,51 @@ class LayoutGenerator:
         canvas.size(PIXEL_WIDTH, PIXEL_HEIGHT)
         canvas.background_color("white")
         img = canvas.render(col).to_pillow().convert("RGB")
+        img_path = rf"output\{Scryfall.get_card_name(self.card)}-{face.name}.png"
+        img.save(img_path, "PNG")
+        return img_path
 
-        #img = img.resize((int(img.size[0] / 3), int(img.size[1] / 3)), Resampling.LANCZOS)
+    def generate_card(self) -> bool:
+        print("[LayoutGenerator][generate_card] Generating card...")
+
+        images = []
+
+        if self.card.card_faces:
+            images.append(self.generate_card_page(Faces.Front))
+            images.append(self.generate_card_page(Faces.Back))
+        else:
+            images.append(self.generate_card_page(Faces.Front))
+
         pdf_path = rf"output\{Scryfall.get_card_name(self.card)}.pdf"
-        img.save(rf"output\{Scryfall.get_card_name(self.card)}.png", "PNG")
 
         try:
             layout = img2pdf.get_fixed_dpi_layout_fun((DPI, DPI))
-            Path(pdf_path).write_bytes(img2pdf.convert(rf"output\{Scryfall.get_card_name(self.card)}.png", layout_fun=layout))
-            #img.save(pdf_path, "PDF",resolution=100.0, save_all=True)
+            Path(pdf_path).write_bytes(img2pdf.convert(images, layout_fun=layout))
             os.startfile(rf"{pdf_path}")
             return True
         except PermissionError:
             print(f"[LayoutGenerator][generate_card] Permission error!")
             return False
 
-    def generate_data_row(self, text, fonts, sizes, weight):
+    def generate_data_row(self, text, fonts, sizes, weight, set_as_row = False):
         row = []
         print(f"Generating row data for {text}")
         for font in fonts:
             print(f"At font {font.name}")
-            row.append(self.generate_data_column(text, font, sizes, weight))
+            row.append(self.generate_data_column(text, font, sizes, weight, set_as_row))
 
         return Row(*row)
 
-    def generate_data_column(self, text, font, sizes, weight):
+    def generate_data_column(self, text, font, sizes, weight, set_as_row):
         column = []
         print (f"Generating column data for font {font.name}")
         for size in sizes:
             print(f"At size {size}")
-            column.append(self.generate_data_set(text, font, size, weight))
+            column.append(self.generate_data_set(text, font, size, weight, set_as_row))
 
         return Column(*column)
 
-    def generate_data_set(self, text, font : FontSet, size, weight : FontWeight):
+    def generate_data_set(self, text, font : FontSet, size, weight : FontWeight, set_as_row):
         print(f"Generating data for font {font.name}")
         if size >= 14:
             text = self.wrap_text(18, text)
@@ -203,7 +250,10 @@ class LayoutGenerator:
         invert = Text(text)
         self.style_text(invert, font, size, True)
 
-        return Column(regular, invert)
+        if set_as_row:
+            return Row(regular, invert)
+        else:
+            return Column(regular, invert)
 
     def get_weight_for_font(self, font : FontSet, weight):
         if weight == FontWeight.Bold:
@@ -214,10 +264,9 @@ class LayoutGenerator:
         return font.regular
 
     def style_text(self, text: Text, font, size, invert=False):
-        text.font_family(rf"fonts\{font}").font_size(size*POINT_SIZE).color("black").margin(0.05*DPI)
+        text.font_family(rf"fonts\{font}").font_size(size*POINT_SIZE).margin(0.05*DPI).padding(0.05 * DPI)
         if invert:
             text.background_color("black")
-            text.padding(0.05 * DPI)
             text.color("white")
 
         else:
@@ -262,10 +311,18 @@ class LayoutGenerator:
     def format_oracle(self, text: str):
         text = self.remove_parenthenticals(text)
         text = text.replace("{", "").replace("}", "")
-        text = self.wrap_text(34, text)
+
         if self.card.type_line == "Dungeon":
             print("Formatting dungeon")
-            text = text.replace(" \u2014 ", "\n")
+            text = text.replace(" \u2014", ":")
+            text = self.wrap_text(18, text)
+        elif self.card.layout in NARROW_LAYOUTS:
+            text = self.wrap_text(18, text)
+        else:
+            if len(text) > LONG_TEXT:
+                text = self.wrap_text(38, text)
+            else:
+                text = self.wrap_text(34, text)
         return text
 
     def remove_parenthenticals(self, text: str):
