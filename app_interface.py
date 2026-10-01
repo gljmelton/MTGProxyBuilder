@@ -17,6 +17,7 @@ class BuilderApp:
     search_callback = None #Event we invoke when search is called.
     generate_callback = None
     font_preview_callback = None
+    symbol_sheet_callback = None
 
     def search(self, event):
         print(f"[BuilderApp][search] Search button pressed! Searching '{self.search_entry.get()}'")
@@ -27,6 +28,11 @@ class BuilderApp:
         print(f"[BuilderApp][search] Font Preview button pressed!")
         if self.font_preview_callback:
             self.font_preview_callback()
+
+    def generate_symbol_sheet(self, event):
+        print(f"[BuilderApp][search] Generate symbol sheet pressed!")
+        if self.symbol_sheet_callback:
+            self.symbol_sheet_callback()
 
     def generate(self, event):
         print(f"[BuilderApp][search] Generate button pressed!")
@@ -118,9 +124,13 @@ class BuilderApp:
         self.generate_button.grid(column=0, row=0, padx=5, pady=5, sticky=tkinter.EW)
         self.generate_button.bind("<Button-1>", self.generate)
 
-        self.generate_button = ttk.Button(self.actions_frame, text="Create Font Preview")
+        self.generate_button = ttk.Button(self.actions_frame, text="Refresh Font Preview")
         self.generate_button.grid(column=0, row=1, padx=5, pady=5, sticky=tkinter.EW)
         self.generate_button.bind("<Button-1>", self.create_font_preview)
+
+        self.generate_button = ttk.Button(self.actions_frame, text="Generate Symbol Sheet")
+        self.generate_button.grid(column=0, row=2, padx=5, pady=5, sticky=tkinter.EW)
+        self.generate_button.bind("<Button-1>", self.generate_symbol_sheet)
         #
 
         # Custom Data

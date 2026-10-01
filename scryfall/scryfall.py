@@ -70,8 +70,10 @@ class Scryfall:
     @staticmethod
     def get_card_image_uri(card: Card, face:Faces = Faces.Front):
         if card.card_faces:
-            return card.card_faces[face.value].image_uris.normal
-        else :
+            if card.card_faces[face.value].image_uris:
+                return card.card_faces[face.value].image_uris.normal
+            return card.image_uris.normal
+        else:
             return card.image_uris.normal
 
     @staticmethod
