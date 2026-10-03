@@ -20,7 +20,7 @@ MANA_GENERIC = "#beb9b2"
 SYMBOL_COLOR = "#111"
 SYMBOL_FONT = "fonts/mana.ttf"
 TEXT_FONT = "fonts/mplantin.ttf"
-SYMBOL_SIZE = 26
+SYMBOL_SIZE = 28
 SPLIT_SYMBOL_OFFSET = 14
 ICON_MARGIN = 10
 
@@ -190,6 +190,7 @@ class LayoutGenerator:
 
         return True
 
+
     def generate_symbol_page(self):
         col = Column(
             Column(
@@ -257,6 +258,44 @@ class LayoutGenerator:
                                               False, SYMBOL_SIZE * 1.2, padding = 10),
                         self.add_generic_rows(5, "black", "white",
                                               False, SYMBOL_SIZE * 1.2, padding=10).background_color("black"),
+                    ),
+                    Column(
+                        self.add_symbol_row(5, ColorSymbols.WHITE.value, MANA_WHITE, SYMBOL_COLOR, True,
+                        SYMBOL_SIZE * 2.0, padding=8),
+                        self.add_symbol_row(5, ColorSymbols.WHITE.value, MANA_WHITE, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8),
+                        self.add_symbol_row(5, ColorSymbols.BLUE.value, MANA_BLUE, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.BLUE.value, MANA_BLUE, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.BLACK.value, MANA_BLACK, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.BLACK.value, MANA_BLACK, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.RED.value, MANA_RED, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.RED.value, MANA_RED, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.GREEN.value, MANA_GREEN, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.GREEN.value, MANA_GREEN, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.COLORLESS.value, MANA_GENERIC, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, ColorSymbols.COLORLESS.value, MANA_GENERIC, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, TapSymbols.TAP.value, MANA_GENERIC, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, TapSymbols.TAP.value, MANA_GENERIC, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, TapSymbols.OLD_TAP.value, MANA_GENERIC, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, TapSymbols.OLD_TAP.value, MANA_GENERIC, SYMBOL_COLOR, True,
+                                            SYMBOL_SIZE * 2.0, padding=8, shadow_range=4),
+                        self.add_symbol_row(5, TapSymbols.UNTAP.value, SYMBOL_COLOR, "white", False,
+                                            SYMBOL_SIZE * 2.0, padding=8),
+                        self.add_symbol_row(5, TapSymbols.UNTAP.value, SYMBOL_COLOR, "white", False,
+                                            SYMBOL_SIZE * 2.0, padding=8),
                     )
                 )
             )
@@ -265,7 +304,7 @@ class LayoutGenerator:
         canvas = Canvas()
         canvas.size(PIXEL_WIDTH, PIXEL_HEIGHT)
         canvas.background_color("white")
-        canvas.padding(15)
+        canvas.padding(40)
         img = canvas.render(col).to_pillow().convert("RGB")
         img_path = rf"output\symbol_sheet.png"
         img.save(img_path, "PNG")
@@ -305,7 +344,7 @@ class LayoutGenerator:
         return Column(*col)
 
     def add_symbol_row(self, count: int, symbol, background_color, symbol_color = SYMBOL_COLOR, shadow = True,
-                       font_size : float = SYMBOL_SIZE, padding = 4):
+                       font_size : float = SYMBOL_SIZE, padding = 4, shadow_range = 2):
         row = []
 
         for i in range(count):
@@ -313,7 +352,7 @@ class LayoutGenerator:
                     .border_radius(100).padding(padding).margin(ICON_MARGIN))
 
             if shadow:
-                text.box_shadows(Shadow((-2,2), 0, symbol_color))
+                text.box_shadows(Shadow((-shadow_range,shadow_range), 0, symbol_color))
             row.append(text)
 
         return Row(*row)
@@ -332,12 +371,12 @@ class LayoutGenerator:
 
                     #Left Symbol
                     Text(str(pair.value[0][0].value)).font_family(SYMBOL_FONT)
-                        .absolute_position(top=SPLIT_SYMBOL_OFFSET, left=SPLIT_SYMBOL_OFFSET).font_size(SYMBOL_SIZE/1.8)
+                        .absolute_position(top=SPLIT_SYMBOL_OFFSET, left=SPLIT_SYMBOL_OFFSET).font_size(SYMBOL_SIZE/1.9)
                         .color(SYMBOL_COLOR),
 
                     #Right Symbol
                     Text(str(pair.value[1][0].value)).font_family(SYMBOL_FONT)
-                        .absolute_position(right=SPLIT_SYMBOL_OFFSET, bottom=SPLIT_SYMBOL_OFFSET).font_size(SYMBOL_SIZE/1.8)
+                        .absolute_position(right=SPLIT_SYMBOL_OFFSET, bottom=SPLIT_SYMBOL_OFFSET).font_size(SYMBOL_SIZE/1.9)
                         .color(SYMBOL_COLOR)
                 ))
 
