@@ -13,7 +13,6 @@ IMAGE_SCALE = 0.4
 FONT_PREVIEW_PATH = "font_preview.png"
 
 class BuilderApp:
-
     search_callback = None #Event we invoke when search is called.
     generate_callback = None
     font_preview_callback = None
@@ -34,17 +33,22 @@ class BuilderApp:
         if self.symbol_sheet_callback:
             self.symbol_sheet_callback()
 
+    def add_card(self, index):
+        self.cards[index] = {
+            "card": 
+        }
+
     def generate(self, event):
         print(f"[BuilderApp][search] Generate button pressed!")
 
         if self.generate_callback:
             self.generate_callback({
-                "nickname": self.custom_name_entry.get(),
-                "power": self.power_entry.get(),
-                "toughness": self.toughness_entry.get(),
-                "style1": self.style1.get(),
-                "style2": self.style2.get(),
-                "style3": self.style3.get(),
+                "cards": {
+                    "nickname": self.custom_name_entry.get(),
+                    "power": self.power_entry.get(),
+                    "toughness": self.toughness_entry.get(),
+                    "style": self.style.get()
+                }
             })
 
     def update_search_result(self, value):
@@ -74,13 +78,9 @@ class BuilderApp:
         self.font_preview_image.grid(column=0, row=0, padx=5, pady=5, sticky=tkinter.N)
 
     def __init__(self, styles):
+        self.cards = [None, None, None]
         self.styles = styles
-        self.style1 : Combobox | None = None
-        self.style2 : Combobox | None = None
-        self.style3 : Combobox | None = None
-        self.style1_casing: Combobox | None = None
-        self.style2_casing: Combobox | None = None
-        self.style3_casing: Combobox | None = None
+        self.style : Combobox | None = None
         self.font_preview_image: ttk.Label | None = None
         self.style_frame = None
 
@@ -104,6 +104,8 @@ class BuilderApp:
         self.search_button.bind("<Button-1>", self.search)
         #
         ##
+
+        ##Card 1
 
         #Card Preview
         self.card_image_frame = ttk.LabelFrame(self.left_frame, text="Card Preview")
@@ -168,9 +170,7 @@ class BuilderApp:
         self.style_frame = ttk.LabelFrame(parent, text="Styles")
         self.style_frame.grid(column=0, row= row, padx=5, pady=5, sticky=tkinter.NSEW)
 
-        self.style1 = self.add_style_dropdown(0, 0, self.style_frame)
-        self.style2 = self.add_style_dropdown(1, 1, self.style_frame)
-        self.style3 = self.add_style_dropdown(2, 2, self.style_frame)
+        self.style = self.add_style_dropdown(0, 0, self.style_frame)
 
     def add_style_dropdown(self, start_index, row, parent):
         style = ttk.Combobox(parent, values=[style.name for style in self.styles])
