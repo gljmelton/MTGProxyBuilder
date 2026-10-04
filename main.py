@@ -33,12 +33,12 @@ class ProxyBuilder:
 
         print(f"[ProxyBuilder][search_card] Search results: {result.name}")
         self.search_result = result
-        self.app.update_search_result(self.scryfall_data.get_card_image(result))
+        self.app.update_search_result(self.scryfall_data.get_card_image(result), result)
         self.app.push_status("Card found!", "green")
 
-    def generate_layout(self, custom_data):
+    def generate_layout(self, cards):
         self.app.push_status("Generating...", "white")
-        result = self.layout_generator.generate(custom_data, self.search_result)
+        result = self.layout_generator.generate(cards)
         if not result:
             self.app.push_status("Unable to generate!", "red")
 
