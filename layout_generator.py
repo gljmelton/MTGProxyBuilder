@@ -96,7 +96,7 @@ PIXEL_WIDTH = int(WIDTH * DPI)
 PIXEL_HEIGHT = int(HEIGHT * DPI)
 
 BIG_SIZES = [14, 12]
-REGULAR_SIZES = [12, 9]
+REGULAR_SIZES = [10, 8]
 SMALL_SIZES = [9, 7]
 ONLY_SMALL = [9]
 ONLY_TINY = [7]
@@ -173,7 +173,7 @@ class LayoutGenerator:
         return 1
 
     def generate(self, cards: list) -> bool:
-        if cards is None:
+        if cards is None or len(cards) == 0:
             print("[LayoutGenerator][generate] Attempting to generate card with no card!")
             return False
 
@@ -579,6 +579,7 @@ class LayoutGenerator:
         try:
             layout = img2pdf.get_fixed_dpi_layout_fun((DPI, DPI))
             Path(pdf_path).write_bytes(img2pdf.convert(images, layout_fun=layout))
+            
             os.startfile(rf"{pdf_path}")
             return True
         except PermissionError:
